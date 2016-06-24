@@ -1,0 +1,87 @@
+library(twitteR)
+library(ROAuth)
+library(plyr)
+library(dplyr)
+library(stringr)
+library(ggplot2)
+
+#connect to API
+
+download.file(url='https://curl.haxx.se/ca/cacert.pem', destfile='cacert.pem')
+reqURL <- 'https://api.twitter.com/oauth/request_token'
+accessURL <- 'https://api.twitter.com/oauth/access_token'
+authURL <- 'https://api.twitter.com/oauth/authorize'
+consumerKey <- '64xG0tEGrVCCapb03bvWGRGSD'
+consumerSecret <- '8qqQpIJAQrggLw7wBJAMUAITrQ5J1Z10S4KWP9GfKKyTsxiHd8'
+Cred <- OAuthFactory$new(consumerKey=consumerKey,consumerSecret=consumerSecret,requestURL=reqURL,accessURL=accessURL,authURL=authURL)
+Cred$handshake(cainfo = system.file('CurlSSL', 'cacert.pem', package = 'RCurl'))
+save(Cred, file='twitter authentication.Rdata')
+load('twitter authentication.Rdata')
+setup_twitter_oauth("64xG0tEGrVCCapb03bvWGRGSD", "8qqQpIJAQrggLw7wBJAMUAITrQ5J1Z10S4KWP9GfKKyTsxiHd8", "2408818682-0mswSZnfisorqkiFZrViUne9jSQsHjyRumKBfR2", "jtutzJbwi9iUapGuwjoY4AnwGG6FSG2UqIygFrIyB5Acu")
+
+#Searching twitter
+
+csc.list <- searchTwitter('#CSC', n=1000)
+csc.df <- twListToDF(csc.list)
+write.csv(csc.df, file = 'C:/Users/rgallavenkat/Documents/Tweets.csv', row.names = F)
+
+#merge last access with cumulative file and remove duplicates
+
+Tweets <- read.csv('C:/Users/rgallavenkat/Documents/Tweets.csv')
+Tweets <- rbind(Tweets, csc.df)
+Tweets <- subset(Tweets, !duplicated(Tweets$text))
+write.csv(Tweets, file = paste('C:/Users/rgallavenkat/Documents/Tweets.csv'), row.names=F)
+
+#evaluation tweets function
+
+score.sentiment <- function(sentences, pos.words, neg.words, .progress='none')
+{
+  require(plyr)
+  require(stringr)
+  scores <- laply(sentences, function(sentence, pos.words, neg.words){
+    sentence <- gsub('[[:punct:]]', "", sentence)
+    sentence <- gsub('[[:cntrl:]]', "", sentence)
+    sentence <- gsub('\\d+', "", sentence)
+    sentence <- tolower(sentence)
+    word.list <- str_split(sentence, '\\s+')
+    words <- unlist(word.list)
+    pos.matches <- match(words, pos.words)
+    neg.matches <- match(words, neg.words)
+    pos.matches <- !is.na(pos.matches)
+    neg.matches <- !is.na(neg.matches)
+    score <- sum(pos.matches) - sum(neg.matches)
+    return(score)
+  }, pos.words, neg.words, .progress=.progress)
+  scores.df <- data.frame(score=scores, text=sentences)
+  return(scores.df)
+}
+
+pos <- scan('C:/Users/rgallavenkat/Documents/positive-words.txt', what='character', comment.char=';') #folder with positive dictionary
+neg <- scan('C:/Users/rgallavenkat/Documents/negative-words.txt', what='character', comment.char=';') #folder with negative dictionary
+pos.words <- c(pos, 'upgrade')
+neg.words <- c(neg, 'wtf', 'wait', 'waiting', 'epicfail')
+
+
+Dataset <- Tweets
+Dataset$text <- as.factor(Dataset$text)
+scores <- score.sentiment(Dataset$text, pos.words, neg.words, .progress='text')
+write.csv(scores, file = paste("C:/Users/rgallavenkat/Documents/Tweetsscores.csv", sep = " "),row.names = TRUE)
+
+#total evaluation: positive / negative / neutral
+
+stat <- scores
+stat$created <- Tweets$created
+stat$created <- as.Date(stat$created)
+stat <- mutate(stat, tweet=ifelse(stat$score > 0, 'positive', ifelse(stat$score < 0, 'negative', 'neutral')))
+by.tweet <- group_by(stat, tweet, created)
+by.tweet <- summarise(by.tweet, number=n())
+write.csv(by.tweet, file=paste("C:/Users/rgallavenkat/Documents/opin.csv"), row.names=TRUE)
+
+#create chart
+ggplot(by.tweet, aes(created, number)) + geom_line(aes(group=tweet, color=tweet), size=2) +
+  geom_point(aes(group=tweet, color=tweet), size=4) +
+  theme(text = element_text(size=18), axis.text.x = element_text(angle=90, vjust=1)) +
+  #stat_summary(fun.y = 'sum', fun.ymin='sum', fun.ymax='sum', colour = 'yellow', size=2, geom = 'line') +
+  ggtitle("CSC")
+ggsave(file=paste('C:/Users/rgallavenkat/Documents/plot.jpeg'))
+ 

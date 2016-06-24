@@ -1,0 +1,21 @@
+#Predictive Analysis of Faithful Dataset in R
+
+attach(faithful) # contains eruptions and waiting as two variables 
+eruption.lm = lm(eruptions ~ waiting)
+newdata = data.frame(waiting=80)
+predict(eruption.lm, newdata, interval="predict")
+
+#Predictive Analysis of Asset Management
+
+install.packages("ggplot2")
+library(ggplot2)
+getwd()
+train <- read.csv("C:/Users/rgallavenkat/Documents/Assetdatatrain.csv")
+dim(train) # tells no.of rows and columns
+table(is.na(train)) # finding any missing values
+plot(total_assets ~ Year, data = train) 
+
+attach(train)
+total_assets.lm = lm(total_assets ~ Year) # creating linear regression model for total_assets 
+newdata = data.frame(Year = 2017) # new data frame to set the value 
+predict(total_assets.lm, newdata, interval="predict") # setting predicator variable in the new data 

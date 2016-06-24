@@ -1,0 +1,54 @@
+a = 8
+b = 9
+if (a < b) {
+  print("a is small")
+} else if (a > b) {
+  print("a is large")
+} else print("a is b")
+a = 10
+
+
+# logical operators
+
+n <- 5
+if ( a == 6 || n == 5 ) {
+  print ("n = 5")
+} else print(" j are not present")
+
+# VECTORS
+m <- 5
+m <- c(1,2,3)
+n <- c(1,4,3)
+(m < 3) && (n > 6)
+
+# For loop 
+
+d <- 8
+e <- c(6,7,8)
+for(c in e)
+  print(c)
+
+# repeat
+
+b = 90
+repeat { 
+  b<- b-1
+ if(b == 40)
+ break
+}
+b
+
+# While
+
+while(b > 0) {
+  b <- b - 1
+}
+
+# apply
+
+m <- matrix(c(1,2,3,4,5,6,7,6,5), nrow=3, ncol=3)
+m
+apply(m, 1, sum)
+apply(m, 2, sum)
+apply(m, 2, sor)
+  
